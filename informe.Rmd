@@ -1,36 +1,126 @@
 ---
-title: "titulo"
-author: "nombres"
+title: "Gasto de los hogares en Salud"
+author: "Varco María José"
 output: html_document
 ---
 
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-# Cargar los paquetes necesarios acá
+
+library(readr) 
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+
 ```
 
 
 ## Introducción
 
+El presente informe tiene por objetivo analizar el gasto de los hogares en salud, desde una perspectiva de equidad. Para ello, se analiza la Encuesta Nacional de Gasto de los Hogares (ENGHo) realizada por el Instituto Nacional de Estadísticas y Censos (INDEC) durante el periodo 2017-2018.
 
+El INDEC realiza la Encuesta Nacional de Gastos de los Hogares (ENGHo) con el principal objetivo de obtener información acerca de los gastos y los ingresos de los hogares y sus características sociodemográficas. La encuesta, permite caracterizar las condiciones de vida de los hogares, fundamentalmente en términos de su acceso a los bienes y servicios, y de los ingresos –monetarios o en especie–. Tiene un alcance de 45.000 hogares, ubicados en centros urbanos de 2000 o más habitantes de todo el país. 
+
+Las principales variables de la encuesta son el gasto y el ingreso de los hogares. Para el relevamiento de la primera, se registra por cada gasto de consumo realizado por el hogar o uno de sus miembros cada uno de los conceptos relevados. Los valores de las variables monto y cantidad se encuentran transformados para representar valores mensuales para su análisis en términos anuales.
+
+El gasto es registrado según el criterio de lo adquirido durante el periodo de referencia, independientemente del momento en que se cancela o consume el bien en cuestión.
+En cuanto a ingresos, se releva todo tipo de ingreso de los hogares, incluyendo todas las percepciones cobradas durante el periodo de referencia independientemente del momento en que fueron devengadas.
+
+También se registra información sobre otras variables, como características de las viviendas, características demográficas, educacionales y ocupacionales de sus miembros, y sobre el equipamiento de los hogares, entre otras.
 
 ## Exploración de los datos
 
+Los gastos de consumo vinculados a salud se agrupan en la división 6, que puede desagregarse en las siguientes categorías o rubros:
+
+**1. Gasto en medicamentos:** en esta categoría se incluyen una variedad de productos farmacéuticos destinados a tratar distintas patologías, desde medicamentos para la tos y las alergias, hasta medicamentos oncológicos, psiquiátricos o vacunas. También se incluyen elementos para los primeros auxilios y otros productos médicos, tales como, algodón, gasas, vendas, jeringas, etc.
+
+**2. El gasto en consultas** se desagregó en tres grupos: 
+
+a. **Gasto en consultas médicas:** se compone de consultas clínicas generales, cardiológicas, gastroenterológicas, ginecológicas y de obstetricia, oftalmológicas, pediátricas, psiquiátricas, de nariz, garganta y oído, y otras consultas médicas. 
+
+b. **Gasto en consultas odontológicas:** incluye prótesis dentaria, ortodoncia, obturación, extracción, y otras consultas odontológicas. 
+
+c. **Gasto en otras consultas:** abarca consultas al psicólogo, psicopedagogo, fonoaudiólogo, fisioterapeuta, kinesiólogo, estudios médicos, entre otras. 
+
+**3. Gasto en internaciones:** el mismo incluye gastos en internaciones, cirugías y partos. 
+
+**4. Gasto en dispositivos médicos:** se compone de gasto en anteojos, lentes de contacto, prótesis odontológicas, accesorios ortopédicos, anticonceptivos mecánicos, etc. 
+
+**5. Gasto en afiliación:** considera el gasto que realizan los hogares con el objetivo de ampliar la cobertura que poseen, en el caso de los trabajadores formales, adquirir una cobertura adicional o primaría para los miembros del hogar. Incluye 3 categorías de gastos:
+
+a. cuota de afiliación voluntaria a un sistema de salud (prepaga),
+
+b. cuota adicional a la obra social obligatoria,
+    
+c. cuota de gasto en emergencias médicas.
+
+La base de datos a utilizar que voy a usar es la unión de la base de gasto de los hogares recortada para las categorias que componen el gasto en salud con la base de los hogares. 
 
 ```{r}
-# Código para cargar o leer los datos
+gasto_salud_hogares <- read_csv("datos/gasto_salud_hogares.csv")
+View(gasto_salud_hogares)
 ```
+En total la base cuenta con 21543 filas y 141 columnas, donde cada fila corresponde a una unidad de observación, en este caso un hogar o una familia seleccionada para participar en la encuesta.
 
-
+### Gasto total de los hogares según quintil de ingreso pc del hogar
 
 ```{r}
-# Cödigo de R acá 
-# Agregá más bloques según sea necesario
+gasto_salud_hogares |>
+    mutate(gasto_total_ponderado = (gastot*pondera)) |>
+    group_by(qinpch_t) |>
+    summarise(gasto_total = sum(gasto_total_ponderado, na.rm =TRUE))
 ```
 
+Antes de analizar los resultados, cabe mencionar que el quintil que contiene a los hogares con ingresos más bajos se denomina quintil 1, mientras que el quintil 5 es aquel que contiene a los hogares con mayores ingresos. 
+
+Los resultados muestran que a medida que el hogar se encuentra en un quintil más alto de ingresos, el gasto de ese hogar es mayor.
+
+```{r}
+gasto_total <- gasto_salud_hogares |>
+    mutate(gasto_total_ponderado = (gastot*pondera)) |>
+    group_by(qinpch_t) |>
+    summarise(gasto_total = sum(gasto_total_ponderado, na.rm =TRUE))
+```
+
+### Gasto en medicamentos según quintil de ingreso per cápita del hogar
+
+```{r}
+gasto_salud_hogares |>
+    mutate(gasto_med_ponderado = (gasto_medicamentos*pondera)) |>
+    group_by(qinpch_t) |>
+    summarise(gasto_total_medicamentos = sum(gasto_med_ponderado, na.rm =TRUE))
+```
+Al analizar el gasto en medicamentos del hogar, los resultados muestran nuevamente que el gasto del hogar en medicamentos es mayor a medida que el quintil de ingreso pc del hogar aumenta.
+
+```{r}
+gasto_en_medicamentos <- gasto_salud_hogares |>
+    mutate(gasto_med_ponderado = (gasto_medicamentos*pondera)) |>
+    group_by(qinpch_t) |>
+    summarise(gasto_en_medicamentos = sum(gasto_med_ponderado, na.rm =TRUE))
+```
+
+##### Gráficamente:
+```{r}
+gasto_en_medicamentos |>
+ggplot(aes(qinpch_t, gasto_en_medicamentos)) +
+  geom_col(color="royalblue")
+```
+
+Puede observarse, que a medida que el quintil de ingreso pc del hogar crece el hogar gasta más en el rubro medicamentos. El cambio es mayor entre los quintiles 1 y 2, 2 y 3, 3 y 4 que del quintil 4 al 5.
 
 
 ## Hipótesis
+
+1. ¿Cómo se descompone el gasto de los hogares por quintil de ingreso en relación al consumo y al ingreso?
+2. ¿Cuál es la estructura del gasto en salud por quintil de ingreso?
+3. ¿Cuál es el gasto de bolsillo en salud y el gasto en afiliación de los hogares según quintil de ingreso per cápita?
+
+
+
+
+
+
+
 
 
