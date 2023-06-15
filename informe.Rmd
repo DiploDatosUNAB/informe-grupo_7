@@ -302,7 +302,3 @@ estructura_gasto_salud_7 |>
 
 La participación del gasto de bolsillo en el gasto total en salud cae, a favor de un aumento de la participación del gasto en afiliacióna a medida que aumenta el quintil de ingreso pc del hogar.
 
-
-
-
-
