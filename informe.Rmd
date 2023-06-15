@@ -1,13 +1,20 @@
 ---
 title: "Gasto de los hogares en Salud"
 author: "Varco María José"
-output: html_document
+output:
+  html_document:
+    code_folding: hide
+    toc: true
+    theme: united
 ---
 
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
 library(readr) 
 library(dplyr)
 library(ggplot2)
@@ -59,68 +66,239 @@ La base de datos a utilizar que voy a usar es la unión de la base de gasto de l
 
 ```{r}
 gasto_salud_hogares <- read_csv("datos/gasto_salud_hogares.csv")
-View(gasto_salud_hogares)
+
 ```
 En total la base cuenta con 21543 filas y 141 columnas, donde cada fila corresponde a una unidad de observación, en este caso un hogar o una familia seleccionada para participar en la encuesta.
 
 ### Gasto total de los hogares según quintil de ingreso pc del hogar
 
+Antes de analizar el comportamiento del gasto del hogar en un rubro en particular, primero analizo el comportamiento del gasto total del hogar. En particular, se puede ver cuánto gasta en promedio un hogar según el quintil de ingreso pc del hogar. Cabe mencionarl, que el quintil que contiene a los hogares con ingresos más bajos se denomina quintil 1, mientras que el quintil 5 es aquel que contiene a los hogares con mayores ingresos.
+
 ```{r}
-gasto_salud_hogares |>
+gasto_total_hogar <- gasto_salud_hogares |>
     mutate(gasto_total_ponderado = (gastot*pondera)) |>
     group_by(qinpch_t) |>
-    summarise(gasto_total = sum(gasto_total_ponderado, na.rm =TRUE))
+    summarise(gasto_total_promedio = mean(gasto_total_ponderado, na.rm =TRUE))
 ```
 
-Antes de analizar los resultados, cabe mencionar que el quintil que contiene a los hogares con ingresos más bajos se denomina quintil 1, mientras que el quintil 5 es aquel que contiene a los hogares con mayores ingresos. 
+*Tabla 1: Gasto total promedio de los hogares según quintil de ingresos pc del hogar:*
+```{r}
+gasto_total_hogar |>
+  knitr::kable(col.names = c("Quintil de ingreso pc del hogar", 
+                             "Gasto total promedio del hogar"))
+```
 
-Los resultados muestran que a medida que el hogar se encuentra en un quintil más alto de ingresos, el gasto de ese hogar es mayor.
+*Gráficamente:*
 
 ```{r}
-gasto_total <- gasto_salud_hogares |>
-    mutate(gasto_total_ponderado = (gastot*pondera)) |>
+#| fig.cap = "Fuente: Elaboración propia en base a ENGHo 2017-2018, INDEC" 
+gasto_total_hogar |>
+ggplot(aes(qinpch_t, gasto_total_promedio)) +
+  geom_col(fill="royalblue") +
+  labs(title = "Gráfico 1: Gasto total promedio de los hogares según quintil de ingresos pc del hogar") +
+  theme_classic()
+```
+
+Los resultados muestran que a medida que el hogar se encuentra en un quintil de ingresos pc más alto, el gasto total promedio de ese hogar es mayor.
+
+### Gasto total en salud del hogar según quintil de ingreso per cápita del hogar
+
+A continuación, se puede observar el gasto promedio en salud de los hogares según quintil de ingreso pc del hogar. 
+```{r}
+gasto_salud_total_hogar <- gasto_salud_hogares |>
+    mutate(gtot_salud_ponderado = gc_06*pondera) |>
     group_by(qinpch_t) |>
-    summarise(gasto_total = sum(gasto_total_ponderado, na.rm =TRUE))
+    summarise(gasto_salud_promedio = mean(gtot_salud_ponderado, na.rm =TRUE))
 ```
 
-### Gasto en medicamentos según quintil de ingreso per cápita del hogar
+*Tabla 2: Gasto total en salud promedio de los hogares según quintil de ingresos pc del hogar:*
+```{r}
+gasto_total_hogar |>
+  knitr::kable(col.names = c("Quintil de ingreso pc del hogar", 
+                             "Gasto total en salud promedio del hogar"))
+```
+
+*Gráficamente:*
 
 ```{r}
-gasto_salud_hogares |>
-    mutate(gasto_med_ponderado = (gasto_medicamentos*pondera)) |>
-    group_by(qinpch_t) |>
-    summarise(gasto_total_medicamentos = sum(gasto_med_ponderado, na.rm =TRUE))
-```
-Al analizar el gasto en medicamentos del hogar, los resultados muestran nuevamente que el gasto del hogar en medicamentos es mayor a medida que el quintil de ingreso pc del hogar aumenta.
-
-```{r}
-gasto_en_medicamentos <- gasto_salud_hogares |>
-    mutate(gasto_med_ponderado = (gasto_medicamentos*pondera)) |>
-    group_by(qinpch_t) |>
-    summarise(gasto_en_medicamentos = sum(gasto_med_ponderado, na.rm =TRUE))
+#| fig.cap = "Fuente: Elaboración propia en base a ENGHo 2017-2018, INDEC" 
+gasto_salud_total_hogar |>
+ggplot(aes(qinpch_t, gasto_salud_promedio )) +
+  geom_col(fill="Indianred1") +
+  labs(title = "Gráfico 2: Gasto total en salud promedio de los hogares según quintil de ingresos pc del hogar") +
+  theme_classic()
 ```
 
-##### Gráficamente:
-```{r}
-gasto_en_medicamentos |>
-ggplot(aes(qinpch_t, gasto_en_medicamentos)) +
-  geom_col(color="royalblue")
-```
-
-Puede observarse, que a medida que el quintil de ingreso pc del hogar crece el hogar gasta más en el rubro medicamentos. El cambio es mayor entre los quintiles 1 y 2, 2 y 3, 3 y 4 que del quintil 4 al 5.
+Nuevamente, los resultados muestran que a medida que el hogar se encuentra en un quintil de ingresos pc más alto, el gasto total en salud promedio de ese hogar es mayor.
 
 
 ## Hipótesis
 
-1. ¿Cómo se descompone el gasto de los hogares por quintil de ingreso en relación al consumo y al ingreso?
-2. ¿Cuál es la estructura del gasto en salud por quintil de ingreso?
-3. ¿Cuál es el gasto de bolsillo en salud y el gasto en afiliación de los hogares según quintil de ingreso per cápita?
+### 1) Estructura del gasto en salud del hogar según quintil de ingreso pc del hogar:
+
+```{r}
+estructura_gasto_salud <- gasto_salud_hogares |>
+     group_by(qinpch_t) |>
+     summarise(gt_med = sum(gasto_medicamentos*pondera, na.rm =TRUE), 
+               gt_disp = sum(gasto_dispositivos*pondera, na.rm =TRUE),
+               gt_consultas_medicas = sum(gasto_consultas_medicas*pondera, na.rm =TRUE),
+               gt_consultas_odon= sum(gasto_consultas_odonto*pondera, na.rm =TRUE),
+               gt_otrasconsultas= sum(gasto_otrasconsultas*pondera, na.rm =TRUE),
+               gt_internaciones= sum(gasto_internaciones*pondera, na.rm =TRUE),
+               gt_seguros= sum(gasto_seguros*pondera, na.rm =TRUE),
+               gt_salud=sum(gc_06*pondera, na.rm = TRUE),
+               g_total=sum(gastot*pondera, na.rm = TRUE),
+               y_total=sum(ingtoth*pondera, na.rm = TRUE))
+```
+
+```{r}
+estructura_gasto_salud_2 <- estructura_gasto_salud |>
+  pivot_longer(cols = c(2:8))
+```
+
+```{r}
+estructura_gasto_salud_3 <- estructura_gasto_salud_2 |>
+  group_by(qinpch_t) |>
+  mutate(participacion = value / sum(value) * 100)
+```
+
+```{r}
+#| fig.cap = "Fuente: Elaboración propia en base a ENGHo 2017-2018, INDEC" 
+estructura_gasto_salud_3 |>
+  group_by(qinpch_t) %>% 
+  ggplot(aes(qinpch_t, participacion, fill = name)) +
+  geom_col() +
+  labs(title = "Gráfico 3: Estructura del gasto en salud del hogar según quintil de ingreso pc del hogar") +
+    theme_classic()
+```
+
+Al descomponer el gasto en salud por quintil de ingresos pc del hogar como proporción del gasto total en salud de los hogares, se destacan dos particularidades. 
+
+En primer lugar, el gasto en medicamentos (gt_med) es el gasto con mayor participación en el gasto en salud total en los cuatro primeros quintiles de ingreso y el segundo para el quintil de mayores ingresos. Esto muestra la importancia relativa del gasto en medicamentos en los hogares, debido a que el mismo representa en promedio el 44% del gasto en salud.
+
+Segundo, el gasto en afiliación (gt_seguros), el cual incluye la cuota de afiliación voluntaria a un sistema de salud (prepaga), la cuota adicional a la obra social obligatoria y la cuota de gasto en emergencias médicas; tiene menor relevancia en los quintiles de menores ingresos, mientras que en los hogares pertenecientes al quinto quintil es el gasto con mayor participación en el gasto total en salud (50% aproximandamente).
+
+### 2) Participación del gasto total en salud de los hogares según quintil de ingreso pc del hogar en relación al gasto total del hogar y el ingreso total pc del hogar:
+
+En el presente apartado, se puede ver la particupación del gasto total en salud en el gasto total y en el ingreso total de los hogares.  
+
+```{r}
+totales <- gasto_salud_hogares |>
+     summarise(gt_salud=sum(gc_06*pondera, na.rm = TRUE),
+               g_total=sum(gastot*pondera, na.rm = TRUE),
+               y_total=sum(ingtoth*pondera, na.rm = TRUE)) |>
+     mutate(gt = (gt_salud / g_total) * 100) |>
+     mutate(yt = (gt_salud / y_total) * 100)
+```
+
+*Tabla 3: Participación del gasto totol en salud del hogar en el gasto total y en ingreso total de los hogares, en porcentaje.*
+```{r}
+totales |>
+  select(-c(gt_salud, y_total, g_total)) |>
+   knitr::kable(col.names = c("Gasto total del hogar",
+                             "Ingreso total del hogar"))
+```
+
+Según la ENGHo, durante el período 2017/2018, los hogares destinaron un 6,4% del gasto total a bienes y servicios de salud. Asimismo, en relación al ingreso, el gasto en salud representó el 4,9%.
+
+```{r}
+estructura_gasto_salud_4 <- estructura_gasto_salud |>
+  select(-c(gt_med, gt_disp, gt_consultas_medicas, gt_consultas_odon, gt_otrasconsultas, gt_internaciones, gt_seguros)) |>
+  mutate(part_gt = (gt_salud / g_total) * 100) |>
+  mutate(part_yt = (gt_salud / y_total) * 100)
+```
+
+Luego, se puede descomponer según quintil de ingreso pc del hogar. 
+
+*Tabla 3: Participación del gasto totol en salud del hogar en el gasto total y en ingreso total de los hogares según quintil de ingreso pc del hogar, en porcentaje.*
+```{r}
+estructura_gasto_salud_5 <- estructura_gasto_salud_4 |>
+  select(-c(gt_salud, y_total, g_total))
+```
+
+```{r}
+estructura_gasto_salud_5 |>
+    knitr::kable(col.names = c("Quintil de ingreso pc del hogar", 
+                             "Gasto total del hogar",
+                             "Ingreso total del hogar"))
+```
+*Gráficamente:*
+
+```{r}
+#| fig.cap = "Fuente: Elaboración propia en base a ENGHo 2017-2018, INDEC" 
+
+estructura_gasto_salud_5 |>
+  group_by(qinpch_t) |>
+  ggplot(aes(qinpch_t, part_gt)) +
+  geom_col(fill="#8FBC8F") +
+    labs(title = "Gráfico 4: Participación del Gasto en Salud en el gasto total de los hogares según quintil de ingreso per cápita") +
+    theme_classic()
+
+```
 
 
+```{r}
+#| fig.cap = "Fuente: Elaboración propia en base a ENGHo 2017-2018, INDEC" 
 
+estructura_gasto_salud_5 |>
+  group_by(qinpch_t) |>
+  ggplot(aes(qinpch_t, part_yt)) +
+   geom_col(fill="#B22222") +
+    labs(title = "Gráfico 5: Participación del Gasto en Salud en el ingreso total de los hogares según quintil de ingreso per cápita") +
+    theme_classic()
 
+```
 
+Al analizar el gasto en salud como proporción del gasto total del hogar se puede observar una marcada tendencia creciente en los quintiles (Gráfico N4). Mientras que en el quintil de menores ingresos el gasto en salud sólo representa el 4.2% del gasto total del hogar, en el quintil de mayores el ingreso representa el 8,0% del gasto total. Sin embargo, estas relaciones se modifican si se observa el gasto en salud en relación al ingreso de los hogares. La tendencia creciente que se podía observar en el caso anterior ya no es clara (Gráfico 5). Las diferencias encontradas anteriormente ya no son tan marcadas, existiendo sólo una brecha de medio punto porcentual entre los hogares pertenecientes a los quintiles extremos.
 
+### 3) Gasto de bolsillo en salud de los hogares y en afiliaciones:
 
+El gasto que realizan los hogares vinculado a salud se conforma por:
 
+a. El gasto de bolsillo que son las erogaciones directas por parte de los hogares, incluidos las gratificaciones y los pagos en especie a los médicos y proveedores de fármacos, dispositivos terapéuticos y otros bienes y servicios destinados principalmente a contribuir a la restauración o la mejora del estado de salud de individuos o grupos de población. En este aspecto, el componente que suele tener más peso es el del gasto en medicamentos. 
 
+b. Los aportes a seguros privados voluntarios. 
+
+El gasto de bolsillo, a diferencia del pago de cuotas en seguros de salud, no es predecible, e implica la exposición a riesgos financieros o a inaccesibilidad a los cuidados de salud necesarios en situaciones de enfermedad.
+
+```{r}
+gasto_de_bolsillo <- gasto_salud_hogares |>
+     group_by(qinpch_t) |>
+     summarise(gt_med = sum(gasto_medicamentos*pondera, na.rm =TRUE), 
+               gt_disp = sum(gasto_dispositivos*pondera, na.rm =TRUE),
+               gt_consultas_medicas = sum(gasto_consultas_medicas*pondera, na.rm =TRUE),
+               gt_consultas_odon= sum(gasto_consultas_odonto*pondera, na.rm =TRUE),
+               gt_otrasconsultas= sum(gasto_otrasconsultas*pondera, na.rm =TRUE),
+               gt_internaciones= sum(gasto_internaciones*pondera, na.rm =TRUE),
+               gt_seguros= sum(gasto_seguros*pondera, na.rm =TRUE),
+               gt_salud=sum(gc_06*pondera, na.rm = TRUE),
+               g_total=sum(gastot*pondera, na.rm = TRUE),
+               y_total=sum(ingtoth*pondera, na.rm = TRUE)) |>
+     mutate(gt_bolsillo = gt_med + gt_disp + gt_consultas_medicas + gt_consultas_odon +                 gt_otrasconsultas + gt_internaciones)
+               
+```
+
+```{r}
+estructura_gasto_salud_6 <- gasto_de_bolsillo |>
+  select(-c(gt_med, gt_disp, gt_consultas_medicas, gt_consultas_odon, gt_otrasconsultas, gt_internaciones)) |>
+  mutate(gasto_de_bolsillo = (gt_bolsillo / gt_salud) * 100) |>
+  mutate(gasto_en_seguros = (gt_seguros / gt_salud) * 100) 
+```
+
+```{r}
+estructura_gasto_salud_7 <- estructura_gasto_salud_6 |>
+  select(-c(gt_seguros, gt_salud, g_total, y_total, gt_bolsillo)) |>
+  pivot_longer(cols = c(2:3))
+```
+
+```{r}
+#| fig.cap = "Fuente: Elaboración propia en base a ENGHo 2017-2018, INDEC" 
+estructura_gasto_salud_7 |>
+  group_by(qinpch_t) %>% 
+  ggplot(aes(qinpch_t, value, fill = name)) +
+  geom_col() +
+  labs(title = "Gráfico 6: Gasto en salud de los hogares, estructura comparativa") +
+    theme_classic()
+```
+
+La participación del gasto de bolsillo en el gasto total en salud cae, a favor de un aumento de la participación del gasto en afiliacióna a medida que aumenta el quintil de ingreso pc del hogar.
